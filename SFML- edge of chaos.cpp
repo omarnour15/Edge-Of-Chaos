@@ -16,8 +16,8 @@ using namespace std;
 #define COLOR_4 13  // Peach/Pink
 
 //black and white
-#define COLOR_0_BW 0
-#define COLOR_1_BW 7
+#define COLOR_0_BW 20
+#define COLOR_1_BW 21
 
 //clear screen function
 void clear_screen() {
@@ -32,8 +32,33 @@ void clear_screen() {
 
 
 
-void set_color(int color) {
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
+void set_color(int number) {
+    if (number == 0) {
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), COLOR_0);
+    }
+    else if (number == 1) {
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), COLOR_1);
+    }
+    else if (number == 2) {
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), COLOR_2);
+    }
+    else if (number == 3) {
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), COLOR_3);
+    }
+    else if (number == 4) {
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), COLOR_4);
+    }
+
+    else if (number == 20) { // well start with 2 for the B&W
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0);
+    }
+    else if (number == 21) { // well start with 2 for the B&W
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+    }
+
+    else {
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7); // back to original
+    }
 }
 
 
@@ -155,6 +180,70 @@ void fractal_triangle(vector<vector<int>>& grid) {
     }
 }
 
+void diagonal_triangle(vector<vector<int>>& grid) {
+    for (int i = 0; i < height - 1; i++) {
+        for (int j = 1; j < width - 1; j++) {
+            if (grid[i + 1][j - 1] == 0 && grid[i + 1][j + 1] == 0 && grid[i][j] == 1) {
+                grid[i + 1][j - 1] = 1;
+                grid[i + 1][j + 1] = 1;
+            }
+            else if (grid[i + 1][j + 1] == 0 && grid[i][j] == 1) {
+                grid[i + 1][j + 1] = 1;
+            }
+        }
+    }
+}
+
+void mirror(vector<vector<int>>& grid) {
+    for (int i = 0; i < height; i++) {
+        for (int j = 1; j < width - 1; j++) {
+            if (grid[i][j] == 1) {
+                grid[i][width - j] = 1;
+            }
+        }
+    }
+}
+
+void wave(vector<vector<int>>& grid) {
+    for (int i = 1; i < height; i++) {
+        for (int j = 1; j < width - 1; j++) {
+            grid[i][j] = (grid[i - 1][j - 1] + grid[i - 1][j + 1]) % 2;
+        }
+    }
+}
+
+void sin_wave(vector<vector<int>>& grid) {
+    for (int i = 1; i < height; i++) {
+        for (int j = 1; j < width - 1; j++) {
+
+            const float frequency = 2.0;
+            const float amplitude = min(width / 2 - 1, 10.2f);
+            int shift = width / 2;
+
+            int column = round(sin(i * frequency) * amplitude) + shift;
+
+            if (column >= 0 && column < width) {
+                grid[i][column] = 1;
+            }
+        }
+    }
+}
+
+void weird_wave(vector<vector<int>>& grid, const float frequency, const float ampl, int thickness) {
+    for (int i = 0; i < height - 1; i++) {
+        const float amplitude = min(width / 2 - 1, ampl);
+        int shift = width / 2;
+
+        int target = round(sin(i * frequency) * amplitude) + shift;
+
+        for (int j = 0; j < width - 1; j++) {
+            if (abs(j - target) <= thickness) {
+                grid[i][j] = 1;
+            }
+            else { grid[i][j] = 0; }
+        }
+    }
+}
 
 int main() {
     /*sf::RenderWindow window(sf::VideoMode({ 200, 200 }), "SFML works!");
@@ -177,6 +266,7 @@ int main() {
         window.display();
     }*/
     srand(time(0));
+    ios::sync_with_stdio(false);
 
     vector<vector<int>> grid;
 
@@ -198,10 +288,8 @@ int main() {
         empty_vector.resize(width, 0);
         grid.resize(height, empty_vector);
 
-        for (int count = 0; count < 1001; count++) {
-            clear_screen();
-            for (vector<int>& vec : grid) {
-                for (int& x : vec) {
+            for (auto& vec : grid) {
+                for (auto& x : vec) {
                     x = (rand() % 5);
                 }
             }
@@ -218,19 +306,21 @@ int main() {
             //diagonal_average_triangle(grid);
 
             // Changing the colors of the text
+            int last_color = -1;
+            bool changed = false;
+
             for (const vector<int>& vec : grid) {
                 for (const int& x : vec) {
-                    if (x == 0) { set_color(COLOR_0); cout << x << ""; }
-                    else if (x == 1) { set_color(COLOR_1); cout << x << ""; }
-                    else if (x == 2) { set_color(COLOR_2); cout << x << ""; }
-                    else if (x == 3) { set_color(COLOR_3); cout << x << ""; }
-                    else if (x == 4) { set_color(COLOR_4); cout << x << ""; }
+                    if (x != last_color) {
+                        set_color(x);
+                        last_color = x;
+                    }
+                    cout << x;
                 }
-                set_color(7);
-                cout << endl;
+                cout << "\n";// add a line break after each row
             }
-            //this_thread::sleep_for(chrono::milliseconds(100));
-        }
+            set_color(7);
+            
     }
     //B&W
     else {
@@ -250,10 +340,16 @@ int main() {
 
         //rules
         //triangle_thing(grid);
-        fractal_triangle(grid);
+        //fractal_triangle(grid);
+        //diagonal_triangle(grid);
+        //mirror(grid);
+        //wave(grid);
+        //sin_wave(grid);
+        weird_wave(grid, 3.0, 20.2, 3);
+        mirror(grid);
 
-        for (const vector<int>& vec : grid) {
-            for (const int& x : vec) {
+        for (const auto& vec : grid) {
+            for (const auto& x : vec) {
                 if (x == 0) { set_color(COLOR_0_BW); cout << x << ""; }
                 else if (x == 1) { set_color(COLOR_1_BW); cout << x << ""; }
                 set_color(7);
